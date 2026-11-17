@@ -310,7 +310,15 @@ button{cursor:pointer}
  <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <button class="close" id="closeModal" aria-label="Close">×</button>
   <div class="eyebrow">DEMO REQUEST</div><h2 id="modalTitle">Start with your operation.</h2><p>Tell us a little about your business and the AILINCK team can take it from there.</p>
-  <form id="demoForm"><input required aria-label="Name" placeholder="Name"><input required aria-label="Company" placeholder="Company"><input required aria-label="Phone or email" placeholder="Phone / Email"><textarea rows="4" aria-label="Message" placeholder="What do you want AILINCK to improve?"></textarea><button class="btn" type="submit">Send Request →</button></form>
+  <form id="demoForm">
+   <input name="name" required autocomplete="name" aria-label="Name" placeholder="Full name">
+   <input name="company" required autocomplete="organization" aria-label="Company" placeholder="Company">
+   <input name="email" type="email" required autocomplete="email" aria-label="Email" placeholder="Work email">
+   <input name="phone" type="tel" autocomplete="tel" aria-label="Phone" placeholder="Phone number">
+   <textarea name="message" rows="4" aria-label="Message" placeholder="What do you want AILINCK to improve?"></textarea>
+   <p id="demoStatus" role="status" aria-live="polite" style="font-size:11px;line-height:1.5;color:#61717c;margin:4px 0 12px"></p>
+   <button class="btn" type="submit">Send Request →</button>
+  </form>
  </div>
 </div>
 
@@ -382,7 +390,34 @@ button{cursor:pointer}
  $("#closeModal").addEventListener("click",closeModal);
  modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
  addEventListener("keydown",e=>{if(e.key==="Escape" && modal.classList.contains("open"))closeModal()});
- $("#demoForm").addEventListener("submit",e=>{e.preventDefault();const btn=e.currentTarget.querySelector("button");btn.textContent="Request captured ✓";setTimeout(()=>{btn.textContent="Send Request →";e.currentTarget.reset();closeModal()},1100)});
+ const DEMO_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhbPxMqfxHozebc_cqPU6HV10vwF3OMlDpN0XEnmvZtiCKqWpI678foiL_Im1PAzLp/exec";
+ $("#demoForm").addEventListener("submit", async e=>{
+   e.preventDefault();
+   const form=e.currentTarget, btn=form.querySelector('button[type="submit"]'), status=$("#demoStatus");
+   if(!form.reportValidity()) return;
+   const data=Object.fromEntries(new FormData(form).entries());
+   btn.disabled=true; btn.textContent="Sending…";
+   status.textContent="Sending your request to AILINCK…";
+   try{
+     // Apps Script accepts the JSON body as text/plain, avoiding a browser CORS preflight.
+     // no-cors produces an opaque response, so the browser cannot verify email delivery.
+     await fetch(DEMO_SCRIPT_URL,{
+       method:"POST",
+       mode:"no-cors",
+       headers:{"Content-Type":"text/plain;charset=utf-8"},
+       body:JSON.stringify(data)
+     });
+     status.textContent="Your request has been submitted. The AILINCK team will follow up using the contact details you provided.";
+     status.style.color="#247665";
+     btn.textContent="Request submitted ✓";
+     form.reset();
+     setTimeout(()=>{closeModal();status.textContent="";btn.disabled=false;btn.textContent="Send Request →";status.style.color="#61717c"},2600);
+   }catch(err){
+     status.textContent="We couldn't submit your request. Please try again or contact AILINCK by phone.";
+     status.style.color="#a65340";
+     btn.disabled=false;btn.textContent="Try again →";
+   }
+ });
 
 
  // Expanded operational workspace
